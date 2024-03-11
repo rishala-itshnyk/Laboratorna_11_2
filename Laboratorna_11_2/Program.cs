@@ -75,7 +75,7 @@ namespace Laboratorna_11_2
                     {
                         Console.WriteLine($"\nВкажіть дані студента {i + 1}:");
                         StudentLevel student;
-                        
+
                         student.AdditionalMarks.Programming = 0;
                         student.AdditionalMarks.NumericalMethods = 0;
                         student.AdditionalMarks.Pedagogy = 0;
@@ -136,6 +136,7 @@ namespace Laboratorna_11_2
                         }
                     }
                 }
+
                 Console.WriteLine($"Дані збережено у файл {fileName}.");
             }
             catch (Exception ex)
@@ -143,6 +144,7 @@ namespace Laboratorna_11_2
                 Console.WriteLine($"Помилка при збереженні файлу: {ex.Message}");
             }
         }
+
 
         public static StudentLevel[] LoadFromFile(string fileName)
         {
@@ -159,7 +161,7 @@ namespace Laboratorna_11_2
                     for (int i = 0; i < numberOfStudents; i++)
                     {
                         loadedData[i].StudentNumber = reader.ReadInt32();
-                        loadedData[i].LastName = new string(reader.ReadChars(50));
+                        loadedData[i].LastName = ReadFixedLengthString(reader, 50);
                         loadedData[i].Course = reader.ReadInt32();
                         loadedData[i].Specialization = (Specialization)reader.ReadInt32();
                         loadedData[i].SubjectMarks.Physics = reader.ReadInt32();
@@ -190,6 +192,14 @@ namespace Laboratorna_11_2
             }
         }
 
+        private static string ReadFixedLengthString(BinaryReader reader, int length)
+        {
+            char[] chars = reader.ReadChars(length);
+            int nullTerminatorIndex = Array.IndexOf(chars, '\0');
+            return new string(chars, 0, nullTerminatorIndex >= 0 ? nullTerminatorIndex : length);
+        }
+
+
         public static void Print(StudentLevel[] students)
         {
             Console.WriteLine(
@@ -205,23 +215,25 @@ namespace Laboratorna_11_2
 
         public static void ComputeAverageMarks(StudentLevel[] students)
         {
-            double averagePhysics = students.Any() ? students.Average(s => s.SubjectMarks.Physics) : 0;
-            double averageMathematics = students.Any() ? students.Average(s => s.SubjectMarks.Mathematics) : 0;
-            double averageProgramming = students.Where(s => s.Specialization == Specialization.ComputerScience).Any()
-                ? students.Where(s => s.Specialization == Specialization.ComputerScience)
-                    .Average(s => s.AdditionalMarks.Programming)
-                : 0;
-            double averageNumericalMethods = students.Where(s => s.Specialization == Specialization.Informatics).Any()
-                ? students.Where(s => s.Specialization == Specialization.Informatics)
-                    .Average(s => s.AdditionalMarks.NumericalMethods)
-                : 0;
-            double averagePedagogy = students.Where(s => s.Specialization == Specialization.LaborTraining).Any()
-                ? students.Where(s => s.Specialization == Specialization.LaborTraining)
-                    .Average(s => s.AdditionalMarks.Pedagogy)
-                : 0;
+            foreach (var student in students)
+            {
+                double average = (student.SubjectMarks.Physics + student.SubjectMarks.Mathematics +
+                                  GetAdditionalMark(student)) / 3.0;
+                Console.WriteLine($"Середній бал студента {student.LastName}: {average:F2}");
+            }
+        }
 
-            Console.WriteLine(
-                $"\nСередні оцінки з різних предметів:\nФізика: {averagePhysics}\nМатематика: {averageMathematics}\nСередня Оцінка з Програмування: {averageProgramming}\nСередня Оцінка з Чисельних Методів: {averageNumericalMethods}\nСередня Оцінка з Педагогіки: {averagePedagogy}");
+        private static int GetAdditionalMark(StudentLevel student)
+        {
+            switch (student.Specialization)
+            {
+                case Specialization.ComputerScience:
+                    return student.AdditionalMarks.Programming;
+                case Specialization.Informatics:
+                    return student.AdditionalMarks.NumericalMethods;
+                default:
+                    return student.AdditionalMarks.Pedagogy;
+            }
         }
 
         public static void CountStudentsWithHighPhysicsMarks(StudentLevel[] students)
